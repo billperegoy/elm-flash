@@ -23,7 +23,6 @@ main =
 type alias FlashElement =
     { id : Int
     , text : String
-    , creationTime : Time
     , expirationTime : Time
     }
 
@@ -90,11 +89,10 @@ update msg model =
             let
                 expirationTime =
                     model.currentTime
-                        + model.newDuration
-                        * Time.second
+                        + (model.newDuration * Time.second)
 
                 newFlashElement =
-                    FlashElement model.nextId model.newText model.currentTime expirationTime
+                    FlashElement model.nextId model.newText expirationTime
 
                 newList =
                     newFlashElement :: model.flashElements
@@ -129,19 +127,19 @@ durationString val =
 
 form : Model -> Html Msg
 form model =
-    div []
-        [ input [ value model.newText, onInput UpdateFormText ] []
-        , input [ value (durationString model.newDuration), onInput UpdateFormDuration ] []
-        , button [ onClick CreateFlashElement ] [ text "Create" ]
+    div [ class "form-group" ]
+        [ label [] [ text "Text" ]
+        , input [ class "form-control", value model.newText, onInput UpdateFormText ] []
+        , label [] [ text "Timeout (seconds)" ]
+        , input [ class "form-control", value (durationString model.newDuration), onInput UpdateFormDuration ] []
+        , button [ type_ "submit", class "btn btn-default", onClick CreateFlashElement ] [ text "Create" ]
         ]
 
 
 flashView : List FlashElement -> Html Msg
 flashView elements =
     div []
-        [ div []
-            (flashViewElements elements)
-        ]
+        (flashViewElements elements)
 
 
 flashViewElements : List FlashElement -> List (Html Msg)
@@ -151,9 +149,9 @@ flashViewElements elements =
 
 view : Model -> Html Msg
 view model =
-    div []
+    div [ style [ ( "width", "400px" ), ( "margin", "40px" ) ] ]
         [ flashView model.flashElements
-        , (form model)
+        , form model
         ]
 
 
