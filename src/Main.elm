@@ -23,6 +23,7 @@ main =
 type alias FlashElement =
     { id : Int
     , text : String
+    , color : String
     , expirationTime : Time
     }
 
@@ -32,13 +33,14 @@ type alias Model =
     , nextId : Int
     , newText : String
     , newDuration : Time
+    , newColor : String
     , currentTime : Time
     }
 
 
 init : ( Model, Cmd Msg )
 init =
-    Model [] 4 "" 0 0
+    Model [] 4 "" 0 "" 0
         ! []
 
 
@@ -47,11 +49,11 @@ init =
 
 
 type Msg
-    = NoOp
-    | UpdateCurrentTime Time
+    = UpdateCurrentTime Time
     | TimeoutFlashElements Time
     | UpdateFormText String
     | UpdateFormDuration String
+    | UpdateFormColor String
     | CreateFlashElement
     | DeleteFlashElement Time Int
 
@@ -59,9 +61,6 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        NoOp ->
-            model ! []
-
         UpdateCurrentTime time ->
             { model | currentTime = time } ! []
 
@@ -85,6 +84,9 @@ update msg model =
             in
                 { model | newDuration = duration } ! []
 
+        UpdateFormColor color ->
+            { model | newColor = color } ! []
+
         CreateFlashElement ->
             let
                 expirationTime =
@@ -92,7 +94,11 @@ update msg model =
                         + (model.newDuration * Time.second)
 
                 newFlashElement =
-                    FlashElement model.nextId model.newText expirationTime
+                    { id = model.nextId
+                    , text = model.newText
+                    , color = model.newColor
+                    , expirationTime = expirationTime
+                    }
 
                 newList =
                     newFlashElement :: model.flashElements
@@ -102,6 +108,7 @@ update msg model =
                     , nextId = model.nextId + 1
                     , newDuration = 0
                     , newText = ""
+                    , newColor = ""
                 }
                     ! []
 
@@ -132,6 +139,8 @@ form model =
         , input [ class "form-control", value model.newText, onInput UpdateFormText ] []
         , label [] [ text "Timeout (seconds)" ]
         , input [ class "form-control", value (durationString model.newDuration), onInput UpdateFormDuration ] []
+        , label [] [ text "Type (sucess, info, warning, danger)" ]
+        , input [ class "form-control", value model.newColor, onInput UpdateFormColor ] []
         , button [ type_ "submit", class "btn btn-default", onClick CreateFlashElement ] [ text "Create" ]
         ]
 
@@ -144,7 +153,13 @@ flashView elements =
 
 flashViewElements : List FlashElement -> List (Html Msg)
 flashViewElements elements =
-    List.map (\elem -> div [ class "alert alert-warning" ] [ text elem.text ]) elements
+    List.map
+        (\elem ->
+            div
+                [ class ("alert alert-" ++ elem.color) ]
+                [ text elem.text ]
+        )
+        elements
 
 
 view : Model -> Html Msg
