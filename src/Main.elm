@@ -24,7 +24,6 @@ type alias FlashElement =
     { id : Int
     , text : String
     , color : String
-    , expirationTime : Time
     }
 
 
@@ -34,7 +33,6 @@ type alias Model =
     , newText : String
     , newDuration : Time
     , newColor : String
-    , currentTime : Time
     , subscriptions : List (Sub Msg)
     }
 
@@ -46,14 +44,14 @@ init =
     , newText = ""
     , newDuration = 0
     , newColor = ""
-    , currentTime = 0
-    , subscriptions =
-        [ every second UpdateCurrentTime
-        , every second TimeoutFlashElements
-        , every (60 * second) (DeleteFlashElement 0)
-        ]
+    , subscriptions = []
     }
         ! []
+
+
+deleteSubscription : Int -> Time -> Sub Msg
+deleteSubscription id duration =
+    every (duration * second) (DeleteFlashElement id)
 
 
 
@@ -61,9 +59,7 @@ init =
 
 
 type Msg
-    = UpdateCurrentTime Time
-    | TimeoutFlashElements Time
-    | UpdateFormText String
+    = UpdateFormText String
     | UpdateFormDuration String
     | UpdateFormColor String
     | CreateFlashElement
@@ -73,18 +69,6 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        UpdateCurrentTime time ->
-            { model | currentTime = time } ! []
-
-        TimeoutFlashElements time ->
-            let
-                newList =
-                    List.filter
-                        (\elem -> elem.expirationTime > time)
-                        model.flashElements
-            in
-                { model | flashElements = newList } ! []
-
         UpdateFormText text ->
             { model | newText = text } ! []
 
@@ -101,19 +85,19 @@ update msg model =
 
         CreateFlashElement ->
             let
-                expirationTime =
-                    model.currentTime
-                        + (model.newDuration * Time.second)
-
                 newFlashElement =
                     { id = model.nextId
                     , text = model.newText
                     , color = model.newColor
-                    , expirationTime = expirationTime
                     }
 
                 newList =
                     newFlashElement :: model.flashElements
+
+                newSubscription =
+                    deleteSubscription
+                        model.nextId
+                        model.newDuration
             in
                 { model
                     | flashElements = newList
@@ -121,6 +105,8 @@ update msg model =
                     , newDuration = 0
                     , newText = ""
                     , newColor = ""
+                    , subscriptions =
+                        newSubscription :: model.subscriptions
                 }
                     ! []
 
