@@ -35,12 +35,24 @@ type alias Model =
     , newDuration : Time
     , newColor : String
     , currentTime : Time
+    , subscriptions : List (Sub Msg)
     }
 
 
 init : ( Model, Cmd Msg )
 init =
-    Model [] 4 "" 0 "" 0
+    { flashElements = []
+    , nextId = 0
+    , newText = ""
+    , newDuration = 0
+    , newColor = ""
+    , currentTime = 0
+    , subscriptions =
+        [ every second UpdateCurrentTime
+        , every second TimeoutFlashElements
+        , every (60 * second) (DeleteFlashElement 0)
+        ]
+    }
         ! []
 
 
@@ -55,7 +67,7 @@ type Msg
     | UpdateFormDuration String
     | UpdateFormColor String
     | CreateFlashElement
-    | DeleteFlashElement Time Int
+    | DeleteFlashElement Int Time
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -112,10 +124,12 @@ update msg model =
                 }
                     ! []
 
-        DeleteFlashElement time id ->
+        DeleteFlashElement id time ->
             let
                 newList =
-                    List.filter (\elem -> elem.id /= id) model.flashElements
+                    List.filter
+                        (\elem -> elem.id /= id)
+                        model.flashElements
             in
                 { model | flashElements = newList } ! []
 
@@ -176,7 +190,4 @@ view model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.batch
-        [ every second UpdateCurrentTime
-        , every second TimeoutFlashElements
-        ]
+    Sub.batch model.subscriptions
