@@ -4,6 +4,8 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Time exposing (..)
+import Task exposing (..)
+import Process exposing (..)
 
 
 main : Program Never Model Msg
@@ -96,7 +98,10 @@ update msg model =
                     , newText = ""
                     , newColor = ""
                 }
-                    ! []
+                    ! [ deleteCmd
+                            model.nextId
+                            newFlashElement.duration
+                      ]
 
         DeleteFlashElement id time ->
             let
@@ -106,6 +111,13 @@ update msg model =
                         model.flashElements
             in
                 { model | flashElements = newList } ! []
+
+
+deleteCmd : Int -> Time -> Cmd Msg
+deleteCmd id duration =
+    Process.sleep (duration * second)
+        |> Task.perform
+            (\_ -> DeleteFlashElement id duration)
 
 
 
@@ -164,18 +176,4 @@ view model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.batch (subscriptionList model.flashElements)
-
-
-subscriptionList : List FlashElement -> List (Sub Msg)
-subscriptionList elements =
-    List.map
-        (\elem ->
-            deleteSubscription elem.id elem.duration
-        )
-        elements
-
-
-deleteSubscription : Int -> Time -> Sub Msg
-deleteSubscription id duration =
-    every (duration * second) (DeleteFlashElement id)
+    Sub.none
