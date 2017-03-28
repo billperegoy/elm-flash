@@ -24,6 +24,7 @@ type alias FlashElement =
     { id : Int
     , text : String
     , color : String
+    , duration : Time
     }
 
 
@@ -33,7 +34,6 @@ type alias Model =
     , newText : String
     , newDuration : Time
     , newColor : String
-    , subscriptions : List (Sub Msg)
     }
 
 
@@ -44,14 +44,8 @@ init =
     , newText = ""
     , newDuration = 0
     , newColor = ""
-    , subscriptions = []
     }
         ! []
-
-
-deleteSubscription : Int -> Time -> Sub Msg
-deleteSubscription id duration =
-    every (duration * second) (DeleteFlashElement id)
 
 
 
@@ -89,15 +83,11 @@ update msg model =
                     { id = model.nextId
                     , text = model.newText
                     , color = model.newColor
+                    , duration = model.newDuration
                     }
 
                 newList =
                     newFlashElement :: model.flashElements
-
-                newSubscription =
-                    deleteSubscription
-                        model.nextId
-                        model.newDuration
             in
                 { model
                     | flashElements = newList
@@ -105,8 +95,6 @@ update msg model =
                     , newDuration = 0
                     , newText = ""
                     , newColor = ""
-                    , subscriptions =
-                        newSubscription :: model.subscriptions
                 }
                     ! []
 
@@ -176,4 +164,18 @@ view model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.batch model.subscriptions
+    Sub.batch (subscriptionList model.flashElements)
+
+
+subscriptionList : List FlashElement -> List (Sub Msg)
+subscriptionList elements =
+    List.map
+        (\elem ->
+            deleteSubscription elem.id elem.duration
+        )
+        elements
+
+
+deleteSubscription : Int -> Time -> Sub Msg
+deleteSubscription id duration =
+    every (duration * second) (DeleteFlashElement id)
